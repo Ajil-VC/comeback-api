@@ -7,6 +7,9 @@ const { fail } = require('./utils/response');
 const { HTTPSTATUS_CODE } = require('./utils/statuscode');
 const logger = require('./middleware/logger');
 const morgan = require('morgan');
+const connectDB = require('./config/db');
+
+connectDB();
 
 app.use(express.urlencoded());
 app.use(express.json());

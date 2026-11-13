@@ -1,101 +1,109 @@
-const database = require('../db');
-const { AppError } = require('../utils/AppError');
+
+const AppError = require('../utils/AppError');
 const { success, fail } = require('../utils/response');
 const { HTTPSTATUS_CODE } = require('../utils/statuscode');
+const Task = require('../models/task');
+const { default: mongoose } = require('mongoose');
 
 
+const addTask = async (req, res) => {
+
+    try {
+
+        const title = req.body.title;
+        const newTask = new Task({
+            title
+        });
+
+        const result = await newTask.save();
+
+        return success(res, result, "Task added successfully.", 201);
+
+    } catch (err) {
+        throw new AppError(err.message);
+    }
+
+}
 const getTasks = async (req, res) => {
-    return success(res, database.tasks, "Tasks feteched successfully.");
+
+    try {
+
+        const tasks = await Task.find();
+        return success(res, tasks, "Tasks feteched successfully.");
+
+    } catch (err) {
+        throw new AppError(err.message);
+    }
 }
 
 const getTask = async (req, res) => {
-    const id = Number(req.params.id);
-    const data = database.tasks.find(d => d.id === id);
-    if (!data) return fail(res, "Data not found!", 404, HTTPSTATUS_CODE.NOTFOUND);
-    return success(res, data, "Task Fetched successfully.");
+
+    try {
+
+        const id = req.params.id;
+        if (!id) throw new AppError('Id not valid.');
+        const data = await Task.findById({ _id: req.params.id });
+        if (!data) return fail(res, "Data not found!", 404, HTTPSTATUS_CODE.NOTFOUND);
+        return success(res, data, "Task Fetched successfully.");
+
+    } catch (err) {
+        throw new AppError(err.message)
+    }
 }
 
-const addTask = async (req, res) => {
-    for (let i in database.tasks) {
-
-        if (database.tasks[i].title === req.body.title) {
-            return fail(res, 'This data already exist!', 409, HTTPSTATUS_CODE.CONFLICT);
-        }
-
-    }
-
-    const newData = {
-        id: database.nextId,
-        ...req.body
-    }
-
-    database.tasks.push(newData);
-    database.nextId += 1;
-
-    return success(res, newData, "Task added successfully.", 201);
-}
 
 const updateFullTask = async (req, res) => {
 
-    const id = Number(req.params.id);
-    const data = database.tasks.find(d => d.id === id);
+    try {
 
-    if (!data) return fail(res, "Data not found!", 404, HTTPSTATUS_CODE.NOTFOUND);
+        const id = req.params.id;
 
-    let updatedTask = null;
-    for (i in database.tasks) {
-        if (database.tasks[i].id === id) {
-            database.tasks[i] = {
-                ...database.tasks[i],
-                ...req.body
-            }
-            updatedTask = database.tasks[i];
-            break;
-        }
+        const result = await Task.updateOne({ _id: new mongoose.Types.ObjectId(id) }, {
+            ...req.body
+        })
+
+        if (!result.acknowledged) throw new AppError('Data couldnt update.');
+        return success(res, null, "Task Updated Successfully!");
+
+    } catch (err) {
+        throw new AppError(err.message);
     }
-
-    return success(res, updatedTask, "Task Updated Successfully!");
 
 }
 
 const updateTask = async (req, res) => {
 
-    const id = Number(req.params.id);
-    const data = database.tasks.find(d => d.id === id);
+    try {
 
-    if (!data) return fail(res, "Data not Found!", 404, HTTPSTATUS_CODE.NOTFOUND);
+        const id = req.params.id;
 
-    let updatedTask = null;
-    for (i in database.tasks) {
-        if (database.tasks[i].id === id) {
-            database.tasks[i] = {
-                ...database.tasks[i],
-                ...req.body
-            }
-            updatedTask = database.tasks[i];
-            break;
-        }
+        const result = await Task.updateOne({ _id: new mongoose.Types.ObjectId(id) }, {
+            ...req.body
+        });
+        if (!result.acknowledged) return fail(res, "Data not Found!", 404, HTTPSTATUS_CODE.NOTFOUND);
+
+        return success(res, null, "Updated the task successfully.");
+
+    } catch (err) {
+        throw new AppError(err.message);
     }
-
-    return success(res, updatedTask, "Updated the task successfully.");
 
 }
 
 const removeTask = async (req, res) => {
 
-    const id = Number(req.params.id);
-    const data = database.tasks.find(d => d.id === id);
+    try {
 
-    if (!data) return fail(res, "Data not Found!", 404, HTTPSTATUS_CODE.NOTFOUND);
+        const id = req.params.id;
 
-    for (i in database.tasks) {
-        if (database.tasks[i].id === id) {
-            database.tasks.splice(i, 1);
-            break;
-        }
+        const result = await Task.deleteOne({ _id: new mongoose.Types.ObjectId(id) });
+        if (!result.acknowledged) throw new AppError('Couldnt remove the document.');
+        return success(res, null, "Removed the file successfully.", 204);
+
+    } catch (err) {
+
+        throw new AppError(err.message);
     }
-
-    return success(res, null, "Removed the file successfully.", 204);
 
 }
 
